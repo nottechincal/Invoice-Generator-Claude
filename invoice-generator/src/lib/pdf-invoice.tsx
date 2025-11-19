@@ -200,6 +200,12 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, company }) => {
     });
   };
 
+  // Safely parse addresses and bankDetails
+  const addresses = Array.isArray(company.addresses) ? company.addresses : [];
+  const bankDetails = Array.isArray(company.bankDetails) ? company.bankDetails : [];
+  const firstAddress = addresses.length > 0 ? addresses[0] : null;
+  const firstBankAccount = bankDetails.length > 0 ? bankDetails[0] : null;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -214,13 +220,13 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, company }) => {
           {company.registrationNumber && (
             <Text style={styles.companyDetails}>ACN: {company.registrationNumber}</Text>
           )}
-          {company.addresses?.[0] && (
+          {firstAddress && (
             <>
               <Text style={styles.companyDetails}>
-                {company.addresses[0].street}
+                {firstAddress.street}
               </Text>
               <Text style={styles.companyDetails}>
-                {company.addresses[0].city} {company.addresses[0].state} {company.addresses[0].postalCode}
+                {firstAddress.city} {firstAddress.state} {firstAddress.postalCode}
               </Text>
             </>
           )}
@@ -317,17 +323,17 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, company }) => {
         </View>
 
         {/* Bank Details */}
-        {company.bankDetails?.[0] && (
+        {firstBankAccount && (
           <View style={styles.bankDetails}>
             <Text style={styles.bankTitle}>Payment Details</Text>
             <Text style={styles.bankText}>
-              BSB: {company.bankDetails[0].bsb}
+              BSB: {firstBankAccount.bsb}
             </Text>
             <Text style={styles.bankText}>
-              Account: {company.bankDetails[0].accountNumber}
+              Account: {firstBankAccount.accountNumber}
             </Text>
             <Text style={styles.bankText}>
-              Account Name: {company.bankDetails[0].accountName}
+              Account Name: {firstBankAccount.accountName}
             </Text>
           </View>
         )}

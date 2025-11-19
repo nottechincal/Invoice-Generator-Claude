@@ -62,9 +62,16 @@ export async function GET(
       );
     }
 
+    // Parse JSON fields safely
+    const companyData = {
+      ...company,
+      addresses: typeof company.addresses === 'string' ? JSON.parse(company.addresses) : company.addresses,
+      bankDetails: typeof company.bankDetails === 'string' ? JSON.parse(company.bankDetails) : company.bankDetails,
+    };
+
     // Generate PDF stream
     const pdfStream = await renderToStream(
-      <InvoicePDF invoice={invoice} company={company} />
+      <InvoicePDF invoice={invoice} company={companyData} />
     );
 
     // Convert stream to buffer

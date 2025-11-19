@@ -71,9 +71,16 @@ export async function POST(
       );
     }
 
+    // Parse JSON fields safely
+    const companyData = {
+      ...company,
+      addresses: typeof company.addresses === 'string' ? JSON.parse(company.addresses) : company.addresses,
+      bankDetails: typeof company.bankDetails === 'string' ? JSON.parse(company.bankDetails) : company.bankDetails,
+    };
+
     // Generate PDF buffer
     const pdfBuffer = await renderToBuffer(
-      <InvoicePDF invoice={invoice} company={company} />
+      <InvoicePDF invoice={invoice} company={companyData} />
     );
 
     // Send email with PDF attachment
