@@ -52,6 +52,8 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
     { href: "/dashboard/invoices", label: "Invoices", icon: "📄" },
+    { href: "/dashboard/quotes", label: "Quotes", icon: "📋" },
+    { href: "/dashboard/recurring-invoices", label: "Recurring", icon: "🔄" },
     { href: "/dashboard/customers", label: "Customers", icon: "👥" },
     { href: "/dashboard/products", label: "Products", icon: "📦" },
     { href: "/dashboard/payments", label: "Payments", icon: "💳" },
