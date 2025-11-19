@@ -64,7 +64,7 @@ export async function GET(
 
     // Generate PDF stream
     const pdfStream = await renderToStream(
-      InvoicePDF({ invoice, company })
+      <InvoicePDF invoice={invoice} company={company} />
     );
 
     // Convert stream to buffer

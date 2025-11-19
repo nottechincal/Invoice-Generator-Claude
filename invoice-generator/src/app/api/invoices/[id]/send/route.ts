@@ -72,7 +72,9 @@ export async function POST(
     }
 
     // Generate PDF buffer
-    const pdfBuffer = await renderToBuffer(InvoicePDF({ invoice, company }));
+    const pdfBuffer = await renderToBuffer(
+      <InvoicePDF invoice={invoice} company={company} />
+    );
 
     // Send email with PDF attachment
     await sendInvoiceEmail({
