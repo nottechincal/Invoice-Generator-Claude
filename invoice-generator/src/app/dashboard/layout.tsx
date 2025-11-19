@@ -56,6 +56,8 @@ export default function DashboardLayout({
     { href: "/dashboard/recurring-invoices", label: "Recurring", icon: "🔄" },
     { href: "/dashboard/customers", label: "Customers", icon: "👥" },
     { href: "/dashboard/products", label: "Products", icon: "📦" },
+    { href: "/dashboard/time-tracking", label: "Time Tracking", icon: "⏱️" },
+    { href: "/dashboard/expenses", label: "Expenses", icon: "💰" },
     { href: "/dashboard/payments", label: "Payments", icon: "💳" },
     { href: "/dashboard/reports", label: "Reports", icon: "📈" },
     { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
