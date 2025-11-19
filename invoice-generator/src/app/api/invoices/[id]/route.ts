@@ -82,7 +82,7 @@ export async function DELETE(
     }
 
     // Delete line items first (cascade should handle this, but being explicit)
-    await prisma.lineItem.deleteMany({
+    await prisma.invoiceItem.deleteMany({
       where: {
         invoiceId: params.id,
       },
