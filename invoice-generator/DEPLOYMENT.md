@@ -329,6 +329,68 @@ SENTRY_DSN=""
 
 ## Troubleshooting
 
+### ⚠️ Vercel Build Error: "Can't reach database server"
+
+**Error:**
+```
+Error: P1001: Can't reach database server at db.xxx.supabase.co:6543
+Please make sure your database server is running
+```
+
+**Root Cause:**
+Your build script was running `prisma db push` during the Vercel build process, which:
+1. Tries to connect to the database during build (builds should be stateless)
+2. Uses wrong port for Supabase (6543 is pooling port, not for migrations)
+3. Can cause data loss if run multiple times
+
+**✅ Solution (Already Fixed):**
+The build script has been updated to remove `prisma db push`:
+```json
+"build": "next build"  // ✅ Correct - no DB connection needed
+```
+
+**Setup Steps:**
+1. **Set DATABASE_URL in Vercel:**
+   - Go to Vercel Dashboard → Settings → Environment Variables
+   - Add `DATABASE_URL` with your Supabase connection string
+   - Use port **5432** (direct) or **6543** (transaction pooling)
+
+2. **Initialize Database (One-time, run locally):**
+   ```bash
+   npm install
+   npm run db:push  # Creates tables in Supabase
+   npm run db:seed  # Optional: Add sample data
+   ```
+
+3. **Redeploy:**
+   ```bash
+   git push origin main  # Vercel auto-deploys
+   ```
+
+**Why This Works:**
+- ✅ `postinstall` script runs `prisma generate` (creates Prisma Client)
+- ✅ `next build` compiles the app (no DB needed)
+- ✅ Database is only accessed at runtime (API routes)
+
+**Supabase Connection Strings:**
+
+For Vercel (runtime):
+```
+# Transaction Pooling (Recommended for serverless)
+postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+
+# Direct Connection
+postgresql://postgres.[ref]:[password]@db.[ref].supabase.co:5432/postgres
+```
+
+For migrations (local):
+```
+# Use direct connection (port 5432)
+postgresql://postgres.[ref]:[password]@db.[ref].supabase.co:5432/postgres
+```
+
+---
+
 ### Database Connection Issues
 
 ```bash
@@ -338,7 +400,8 @@ npm run db:push
 # If fails, check:
 # 1. DATABASE_URL is correct
 # 2. Database accepts connections from your IP
-# 3. SSL mode is set correctly
+# 3. SSL mode is set correctly (Supabase requires SSL)
+# 4. Using correct port (5432 for direct, 6543 for pooling)
 ```
 
 ### Build Failures
