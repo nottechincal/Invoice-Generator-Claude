@@ -45,6 +45,15 @@ export default function InvoiceDetailPage() {
   const [downloading, setDownloading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: "",
+    paymentMethod: "bank_transfer",
+    paymentDate: new Date().toISOString().split('T')[0],
+    reference: "",
+    notes: "",
+  });
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -160,6 +169,70 @@ export default function InvoiceDetailPage() {
       alert(`Failed to send invoice: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleMarkAsPaid = () => {
+    if (!invoice) return;
+
+    // Pre-fill amount with amount due
+    setPaymentForm(prev => ({
+      ...prev,
+      amount: invoice.amountDue.toString(),
+    }));
+    setShowPaymentModal(true);
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoice) return;
+
+    try {
+      setRecordingPayment(true);
+
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          amount: parseFloat(paymentForm.amount),
+          paymentMethod: paymentForm.paymentMethod,
+          paymentDate: paymentForm.paymentDate,
+          reference: paymentForm.reference || undefined,
+          notes: paymentForm.notes || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to record payment');
+      }
+
+      const result = await response.json();
+
+      // Refresh invoice data
+      const refreshResponse = await fetch(`/api/invoices/${params.id}`);
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        setInvoice(data);
+      }
+
+      // Close modal and reset form
+      setShowPaymentModal(false);
+      setPaymentForm({
+        amount: "",
+        paymentMethod: "bank_transfer",
+        paymentDate: new Date().toISOString().split('T')[0],
+        reference: "",
+        notes: "",
+      });
+
+      alert(`Payment recorded successfully! Payment #${result.payment.paymentNumber}`);
+    } catch (error) {
+      console.error('Payment recording error:', error);
+      alert(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setRecordingPayment(false);
     }
   };
 
@@ -447,17 +520,20 @@ export default function InvoiceDetailPage() {
           Actions
         </h3>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#10b981',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}>
-            Mark as Paid
+          <button
+            onClick={handleMarkAsPaid}
+            disabled={invoice.status === 'paid'}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: invoice.status === 'paid' ? '#9ca3af' : '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: invoice.status === 'paid' ? 'not-allowed' : 'pointer'
+            }}>
+            {invoice.status === 'paid' ? 'Already Paid' : 'Record Payment'}
           </button>
           <button
             onClick={handleSendToCustomer}
@@ -501,6 +577,223 @@ export default function InvoiceDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '2rem',
+            width: '90%',
+            maxWidth: '500px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem',
+            }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                Record Payment
+              </h2>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                }}>
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordPayment}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Amount Received *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#6b7280',
+                    fontWeight: '500'
+                  }}>$</span>
+                  <input
+                    type="number"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    required
+                    min="0.01"
+                    max={invoice.amountDue}
+                    step="0.01"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 0.75rem 0.75rem 2rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      color: '#1f2937',
+                      backgroundColor: '#ffffff',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  Amount due: ${Number(invoice.amountDue).toFixed(2)}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Payment Method *
+                </label>
+                <select
+                  value={paymentForm.paymentMethod}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
+                    outline: 'none'
+                  }}>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cash">Cash</option>
+                  <option value="check">Check/Cheque</option>
+                  <option value="card">Credit/Debit Card</option>
+                  <option value="paypal">PayPal</option>
+                  <option value="stripe">Stripe</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Payment Date *
+                </label>
+                <input
+                  type="date"
+                  value={paymentForm.paymentDate}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentDate: e.target.value }))}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Reference/Transaction ID
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.reference}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, reference: e.target.value }))}
+                  placeholder="e.g., Transaction #12345"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Notes
+                </label>
+                <textarea
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={3}
+                  placeholder="Additional notes about this payment..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  disabled={recordingPayment}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    cursor: recordingPayment ? 'not-allowed' : 'pointer'
+                  }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={recordingPayment}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: recordingPayment ? '#9ca3af' : '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: recordingPayment ? 'not-allowed' : 'pointer'
+                  }}>
+                  {recordingPayment ? 'Recording...' : 'Record Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
