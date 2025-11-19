@@ -12,7 +12,8 @@ export default function SettingsPage() {
   const [companyData, setCompanyData] = useState({
     legalName: "",
     tradingName: "",
-    taxNumber: "",
+    taxNumber: "", // ABN
+    registrationNumber: "", // ACN
     email: "",
     phone: "",
     website: "",
@@ -21,11 +22,16 @@ export default function SettingsPage() {
       city: "",
       state: "",
       postalCode: "",
-      country: "",
+      country: "Australia",
+    },
+    bankDetails: {
+      bsb: "",
+      accountNumber: "",
+      accountName: "",
     },
     invoiceNumberPrefix: "",
     defaultPaymentTerms: 30,
-    defaultCurrency: "USD",
+    defaultCurrency: "AUD",
   });
 
   useEffect(() => {
@@ -38,6 +44,7 @@ export default function SettingsPage() {
             legalName: data.legalName || "",
             tradingName: data.tradingName || "",
             taxNumber: data.taxNumber || "",
+            registrationNumber: data.registrationNumber || "",
             email: data.email || "",
             phone: data.phone || "",
             website: data.website || "",
@@ -46,11 +53,16 @@ export default function SettingsPage() {
               city: "",
               state: "",
               postalCode: "",
-              country: "",
+              country: "Australia",
+            },
+            bankDetails: data.bankDetails?.[0] || {
+              bsb: "",
+              accountNumber: "",
+              accountName: "",
             },
             invoiceNumberPrefix: data.invoiceNumberPrefix || "",
             defaultPaymentTerms: data.defaultPaymentTerms || 30,
-            defaultCurrency: data.defaultCurrency || "USD",
+            defaultCurrency: data.defaultCurrency || "AUD",
           });
         }
       } catch (error) {
@@ -99,6 +111,13 @@ export default function SettingsPage() {
     setCompanyData(prev => ({
       ...prev,
       address: { ...prev.address, [field]: value }
+    }));
+  };
+
+  const updateBankDetails = (field: string, value: string) => {
+    setCompanyData(prev => ({
+      ...prev,
+      bankDetails: { ...prev.bankDetails, [field]: value }
     }));
   };
 
@@ -200,13 +219,14 @@ export default function SettingsPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                  Tax Number
+                  ABN (Australian Business Number)
                 </label>
                 <input
                   type="text"
                   value={companyData.taxNumber}
                   onChange={(e) => updateField('taxNumber', e.target.value)}
-                  placeholder="12-3456789"
+                  placeholder="12 345 678 901"
+                  maxLength={14}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -218,6 +238,35 @@ export default function SettingsPage() {
                     outline: 'none'
                   }}
                 />
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                  11-digit ABN for GST registration
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  ACN (Australian Company Number)
+                </label>
+                <input
+                  type="text"
+                  value={companyData.registrationNumber}
+                  onChange={(e) => updateField('registrationNumber', e.target.value)}
+                  placeholder="123 456 789"
+                  maxLength={11}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
+                    outline: 'none'
+                  }}
+                />
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                  9-digit ACN (optional)
+                </p>
               </div>
 
               <div>
@@ -416,6 +465,104 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Banking Details */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          padding: '2rem',
+          marginBottom: '1.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1.5rem' }}>
+            Banking Details
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                BSB Number
+              </label>
+              <input
+                type="text"
+                value={companyData.bankDetails.bsb}
+                onChange={(e) => updateBankDetails('bsb', e.target.value)}
+                placeholder="123-456"
+                maxLength={7}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
+                  outline: 'none'
+                }}
+              />
+              <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                6-digit BSB code
+              </p>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Account Number
+              </label>
+              <input
+                type="text"
+                value={companyData.bankDetails.accountNumber}
+                onChange={(e) => updateBankDetails('accountNumber', e.target.value)}
+                placeholder="12345678"
+                maxLength={9}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Account Name
+              </label>
+              <input
+                type="text"
+                value={companyData.bankDetails.accountName}
+                onChange={(e) => updateBankDetails('accountName', e.target.value)}
+                placeholder="Company Trading Account"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '1.5rem',
+            padding: '1rem',
+            backgroundColor: '#eff6ff',
+            borderRadius: '8px',
+            border: '1px solid #bfdbfe'
+          }}>
+            <p style={{ fontSize: '0.875rem', color: '#1e40af' }}>
+              💡 These details will appear on your invoices for customer payments
+            </p>
+          </div>
+        </div>
+
         {/* Invoice Defaults */}
         <div style={{
           backgroundColor: '#ffffff',
@@ -491,11 +638,12 @@ export default function SettingsPage() {
                   outline: 'none'
                 }}
               >
+                <option value="AUD">AUD - Australian Dollar</option>
                 <option value="USD">USD - US Dollar</option>
                 <option value="EUR">EUR - Euro</option>
                 <option value="GBP">GBP - British Pound</option>
-                <option value="AUD">AUD - Australian Dollar</option>
                 <option value="CAD">CAD - Canadian Dollar</option>
+                <option value="NZD">NZD - New Zealand Dollar</option>
               </select>
             </div>
           </div>

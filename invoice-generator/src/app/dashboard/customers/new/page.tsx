@@ -21,7 +21,7 @@ export default function NewCustomerPage() {
       city: "",
       state: "",
       postalCode: "",
-      country: "",
+      country: "Australia",
     },
     paymentTerms: 30,
     notes: "",
@@ -225,7 +225,7 @@ export default function NewCustomerPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                placeholder="(02) 1234 5678"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -247,7 +247,7 @@ export default function NewCustomerPage() {
                 type="tel"
                 value={formData.mobile}
                 onChange={(e) => updateField('mobile', e.target.value)}
-                placeholder="+1 (555) 987-6543"
+                placeholder="0412 345 678"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -263,13 +263,14 @@ export default function NewCustomerPage() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                Tax Number
+                {formData.customerType === 'business' ? 'ABN (Australian Business Number)' : 'Tax File Number (optional)'}
               </label>
               <input
                 type="text"
                 value={formData.taxNumber}
                 onChange={(e) => updateField('taxNumber', e.target.value)}
-                placeholder="12-3456789"
+                placeholder={formData.customerType === 'business' ? '12 345 678 901' : 'TFN (optional)'}
+                maxLength={formData.customerType === 'business' ? 14 : 9}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -281,6 +282,11 @@ export default function NewCustomerPage() {
                   outline: 'none'
                 }}
               />
+              {formData.customerType === 'business' && (
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                  11-digit ABN for Australian businesses
+                </p>
+              )}
             </div>
 
             <div>
@@ -351,7 +357,7 @@ export default function NewCustomerPage() {
                   type="text"
                   value={formData.billingAddress.city}
                   onChange={(e) => updateAddress('city', e.target.value)}
-                  placeholder="New York"
+                  placeholder="Sydney"
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -367,13 +373,11 @@ export default function NewCustomerPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                  State/Province
+                  State/Territory
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.billingAddress.state}
                   onChange={(e) => updateAddress('state', e.target.value)}
-                  placeholder="NY"
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -384,18 +388,29 @@ export default function NewCustomerPage() {
                     backgroundColor: '#ffffff',
                     outline: 'none'
                   }}
-                />
+                >
+                  <option value="">Select state...</option>
+                  <option value="NSW">New South Wales</option>
+                  <option value="VIC">Victoria</option>
+                  <option value="QLD">Queensland</option>
+                  <option value="WA">Western Australia</option>
+                  <option value="SA">South Australia</option>
+                  <option value="TAS">Tasmania</option>
+                  <option value="ACT">Australian Capital Territory</option>
+                  <option value="NT">Northern Territory</option>
+                </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                  Postal Code
+                  Postcode
                 </label>
                 <input
                   type="text"
                   value={formData.billingAddress.postalCode}
                   onChange={(e) => updateAddress('postalCode', e.target.value)}
-                  placeholder="10001"
+                  placeholder="2000"
+                  maxLength={4}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -417,7 +432,7 @@ export default function NewCustomerPage() {
                   type="text"
                   value={formData.billingAddress.country}
                   onChange={(e) => updateAddress('country', e.target.value)}
-                  placeholder="United States"
+                  placeholder="Australia"
                   style={{
                     width: '100%',
                     padding: '0.75rem',
