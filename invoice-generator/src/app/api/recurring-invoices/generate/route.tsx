@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     if (metadata.autoSend && template.customer.email) {
       try {
         const pdfBuffer = await renderToBuffer(
-          InvoicePDF({ invoice: newInvoice, company })
+          <InvoicePDF invoice={newInvoice} company={company} />
         );
 
         await sendInvoiceEmail({
