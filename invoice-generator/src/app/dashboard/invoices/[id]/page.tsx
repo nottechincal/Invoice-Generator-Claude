@@ -42,6 +42,7 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -80,6 +81,39 @@ export default function InvoiceDetailPage() {
         return { bg: "#fef3c7", text: "#92400e", border: "#fde68a" };
       default:
         return { bg: "#f3f4f6", text: "#4b5563", border: "#d1d5db" };
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+
+    try {
+      setDownloading(true);
+      const response = await fetch(`/api/invoices/${params.id}/pdf`);
+
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Invoice-${invoice.number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF download error:", error);
+      alert("Failed to download PDF. Please try again.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -158,17 +192,20 @@ export default function InvoiceDetailPage() {
               Edit
             </button>
           </Link>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#667eea',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}>
-            Download PDF
+          <button
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: downloading ? '#9ca3af' : '#667eea',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: downloading ? 'not-allowed' : 'pointer'
+            }}>
+            {downloading ? 'Generating PDF...' : 'Download PDF'}
           </button>
         </div>
       </div>
