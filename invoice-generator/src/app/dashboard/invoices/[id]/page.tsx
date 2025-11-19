@@ -236,6 +236,75 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleDuplicate = async () => {
+    if (!invoice) return;
+
+    const confirmed = window.confirm(
+      `Create a duplicate of invoice ${invoice.number}?\n\nThis will create a new draft invoice with the same details.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: invoice.customer.id,
+          issueDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          lineItems: invoice.lineItems.map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxPercent: item.taxPercent,
+          })),
+          notes: invoice.notes,
+          terms: invoice.terms,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to duplicate invoice');
+      }
+
+      const result = await response.json();
+      alert(`Invoice duplicated successfully! New invoice #${result.invoice.number}`);
+      router.push(`/dashboard/invoices/${result.invoice.id}`);
+    } catch (error) {
+      console.error('Duplicate error:', error);
+      alert(`Failed to duplicate invoice: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!invoice) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete invoice ${invoice.number}?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/invoices/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete invoice');
+      }
+
+      alert('Invoice deleted successfully!');
+      router.push('/dashboard/invoices');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(`Failed to delete invoice: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -551,28 +620,32 @@ export default function InvoiceDetailPage() {
             title={!invoice.customer.email ? 'Customer email address required' : 'Send invoice to customer'}>
             {sending ? 'Sending...' : 'Send to Customer'}
           </button>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#f59e0b',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}>
+          <button
+            onClick={handleDuplicate}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#f59e0b',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}>
             Duplicate
           </button>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#ffffff',
-            border: '1px solid #fca5a5',
-            color: '#dc2626',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}>
+          <button
+            onClick={handleDelete}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#ffffff',
+              border: '1px solid #fca5a5',
+              color: '#dc2626',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}>
             Delete
           </button>
         </div>
