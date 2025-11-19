@@ -96,6 +96,8 @@ function LoginForm() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none',
                 transition: 'all 0.2s'
               }}
@@ -120,6 +122,8 @@ function LoginForm() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none',
                 transition: 'all 0.2s'
               }}
