@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
 
 // Initialize Resend with API key from environment
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Use placeholder for build time when env var is not available
+const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_for_build');
 
 export interface SendInvoiceEmailParams {
   to: string;
