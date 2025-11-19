@@ -153,7 +153,7 @@ export default function NewInvoicePage() {
       }
 
       const data = await response.json();
-      router.push(`/dashboard/invoices/${data.id}`);
+      router.push("/dashboard/invoices");
     } catch (err) {
       setError("An error occurred. Please try again.");
     } finally {

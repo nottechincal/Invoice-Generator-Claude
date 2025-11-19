@@ -15,7 +15,7 @@ export default function NewProductPage() {
     unitPrice: "",
     unit: "unit",
     category: "",
-    taxPercent: "0",
+    taxPercent: "10", // GST rate in Australia
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,7 +276,7 @@ export default function NewProductPage() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                Default Tax %
+                GST % (Default: 10%)
               </label>
               <input
                 type="number"
@@ -285,7 +285,7 @@ export default function NewProductPage() {
                 min="0"
                 max="100"
                 step="0.1"
-                placeholder="0"
+                placeholder="10"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -319,7 +319,7 @@ export default function NewProductPage() {
               {parseFloat(formData.taxPercent || "0") > 0 && (
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    With Tax ({formData.taxPercent}%)
+                    With GST ({formData.taxPercent}%)
                   </p>
                   <p style={{ fontSize: '1.25rem', fontWeight: '600', color: '#667eea', marginTop: '0.25rem' }}>
                     ${(parseFloat(formData.unitPrice || "0") * (1 + parseFloat(formData.taxPercent || "0") / 100)).toFixed(2)}
