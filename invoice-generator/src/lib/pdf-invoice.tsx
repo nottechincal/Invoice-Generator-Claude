@@ -155,7 +155,6 @@ const styles = StyleSheet.create({
     padding: '4 12',
     backgroundColor: '#d1fae5',
     borderRadius: 12,
-    display: 'inline-block',
     marginBottom: 10,
   },
   statusText: {
