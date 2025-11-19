@@ -217,7 +217,7 @@ export async function sendPaymentReminderEmail({
   daysOverdue,
 }: SendPaymentReminderParams) {
   try {
-    const isOverdue = daysOverdue && daysOverdue > 0;
+    const isOverdue = Boolean(daysOverdue && daysOverdue > 0);
     const subject = isOverdue
       ? `Reminder: Invoice ${invoiceNumber} is ${daysOverdue} days overdue`
       : `Payment Reminder: Invoice ${invoiceNumber}`;
