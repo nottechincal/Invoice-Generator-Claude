@@ -116,6 +116,8 @@ export default function SignupPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none'
               }}
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
@@ -186,6 +188,8 @@ export default function SignupPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none'
               }}
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
@@ -209,6 +213,8 @@ export default function SignupPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none'
               }}
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
@@ -232,6 +238,8 @@ export default function SignupPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '1rem',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
                 outline: 'none'
               }}
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
