@@ -71,16 +71,66 @@ export async function POST(
       );
     }
 
-    // Parse JSON fields safely
+    // Parse JSON fields safely - Prisma returns them as objects/arrays
+    const parseJsonField = (field: any): any[] => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
     const companyData = {
-      ...company,
-      addresses: typeof company.addresses === 'string' ? JSON.parse(company.addresses) : company.addresses,
-      bankDetails: typeof company.bankDetails === 'string' ? JSON.parse(company.bankDetails) : company.bankDetails,
+      id: company.id,
+      legalName: company.legalName,
+      tradingName: company.tradingName,
+      taxNumber: company.taxNumber,
+      registrationNumber: company.registrationNumber,
+      email: company.email,
+      phone: company.phone,
+      addresses: parseJsonField(company.addresses),
+      bankDetails: parseJsonField(company.bankDetails),
+    };
+
+    // Clean invoice data - ensure all fields are serializable
+    const cleanInvoice = {
+      id: invoice.id,
+      number: invoice.number,
+      status: invoice.status,
+      issueDate: invoice.issueDate.toISOString(),
+      dueDate: invoice.dueDate.toISOString(),
+      subtotal: Number(invoice.subtotal),
+      taxTotal: Number(invoice.taxTotal),
+      total: Number(invoice.total),
+      amountDue: Number(invoice.amountDue),
+      notes: invoice.notes || '',
+      terms: invoice.terms || '',
+      customer: {
+        id: invoice.customer.id,
+        name: invoice.customer.name || '',
+        companyName: invoice.customer.companyName || '',
+        email: invoice.customer.email || '',
+        phone: invoice.customer.phone || '',
+      },
+      lineItems: invoice.lineItems.map((item: any) => ({
+        id: item.id,
+        description: item.description || '',
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        taxPercent: Number(item.taxPercent),
+        total: Number(item.total),
+      })),
     };
 
     // Generate PDF buffer
     const pdfBuffer = await renderToBuffer(
-      <InvoicePDF invoice={invoice} company={companyData} />
+      <InvoicePDF invoice={cleanInvoice} company={companyData} />
     );
 
     // Send email with PDF attachment
