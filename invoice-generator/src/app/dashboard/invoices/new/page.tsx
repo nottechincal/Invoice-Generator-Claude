@@ -212,6 +212,8 @@ export default function NewInvoicePage() {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
                   outline: 'none'
                 }}
               >
@@ -248,6 +250,8 @@ export default function NewInvoicePage() {
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
                     outline: 'none'
                   }}
                 />
@@ -267,6 +271,8 @@ export default function NewInvoicePage() {
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '1rem',
+                    color: '#1f2937',
+                    backgroundColor: '#ffffff',
                     outline: 'none'
                   }}
                 />
@@ -342,6 +348,8 @@ export default function NewInvoicePage() {
                           border: '1px solid #d1d5db',
                           borderRadius: '6px',
                           fontSize: '0.875rem',
+                          color: '#1f2937',
+                          backgroundColor: '#ffffff',
                           outline: 'none'
                         }}
                       />
@@ -360,6 +368,8 @@ export default function NewInvoicePage() {
                           borderRadius: '6px',
                           fontSize: '0.875rem',
                           textAlign: 'right',
+                          color: '#1f2937',
+                          backgroundColor: '#ffffff',
                           outline: 'none'
                         }}
                       />
@@ -378,6 +388,8 @@ export default function NewInvoicePage() {
                           borderRadius: '6px',
                           fontSize: '0.875rem',
                           textAlign: 'right',
+                          color: '#1f2937',
+                          backgroundColor: '#ffffff',
                           outline: 'none'
                         }}
                       />
@@ -397,6 +409,8 @@ export default function NewInvoicePage() {
                           borderRadius: '6px',
                           fontSize: '0.875rem',
                           textAlign: 'right',
+                          color: '#1f2937',
+                          backgroundColor: '#ffffff',
                           outline: 'none'
                         }}
                       />
@@ -478,6 +492,8 @@ export default function NewInvoicePage() {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
                   outline: 'none',
                   fontFamily: 'inherit',
                   resize: 'vertical'
@@ -500,6 +516,8 @@ export default function NewInvoicePage() {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '1rem',
+                  color: '#1f2937',
+                  backgroundColor: '#ffffff',
                   outline: 'none',
                   fontFamily: 'inherit',
                   resize: 'vertical'
