@@ -33,8 +33,11 @@ export async function sendInvoiceEmail({
         ]
       : [];
 
+    // Use custom sender email from env var, or fall back to default
+    const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
+
     const { data, error } = await resend.emails.send({
-      from: `${companyName} <invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+      from: `${companyName} <${senderEmail}>`,
       to: [to],
       subject: `Invoice ${invoiceNumber} from ${companyName}`,
       html: generateInvoiceEmailHTML({
@@ -223,8 +226,11 @@ export async function sendPaymentReminderEmail({
       ? `Reminder: Invoice ${invoiceNumber} is ${daysOverdue} days overdue`
       : `Payment Reminder: Invoice ${invoiceNumber}`;
 
+    // Use custom sender email from env var, or fall back to default
+    const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
+
     const { data, error } = await resend.emails.send({
-      from: `${companyName} <invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+      from: `${companyName} <${senderEmail}>`,
       to: [to],
       subject,
       html: generateReminderEmailHTML({
