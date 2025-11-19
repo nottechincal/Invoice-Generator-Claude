@@ -43,6 +43,8 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -114,6 +116,50 @@ export default function InvoiceDetailPage() {
       alert("Failed to download PDF. Please try again.");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleSendToCustomer = async () => {
+    if (!invoice) return;
+
+    if (!invoice.customer.email) {
+      alert("This customer does not have an email address. Please add one before sending.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Send invoice ${invoice.number} to ${invoice.customer.email}?\n\nThe invoice will be sent as a PDF attachment.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setSending(true);
+      setSendSuccess(false);
+
+      const response = await fetch(`/api/invoices/${params.id}/send`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.details || data.error || "Failed to send invoice");
+      }
+
+      setSendSuccess(true);
+      alert(`Invoice sent successfully to ${invoice.customer.email}!`);
+
+      // Refresh invoice data to update status
+      const refreshResponse = await fetch(`/api/invoices/${params.id}`);
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        setInvoice(data);
+      }
+    } catch (error) {
+      console.error("Invoice send error:", error);
+      alert(`Failed to send invoice: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -413,17 +459,21 @@ export default function InvoiceDetailPage() {
           }}>
             Mark as Paid
           </button>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#667eea',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}>
-            Send to Customer
+          <button
+            onClick={handleSendToCustomer}
+            disabled={sending || !invoice.customer.email}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: sending || !invoice.customer.email ? '#9ca3af' : '#667eea',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: sending || !invoice.customer.email ? 'not-allowed' : 'pointer'
+            }}
+            title={!invoice.customer.email ? 'Customer email address required' : 'Send invoice to customer'}>
+            {sending ? 'Sending...' : 'Send to Customer'}
           </button>
           <button style={{
             padding: '0.75rem 1.5rem',
