@@ -1,0 +1,452 @@
+// Enterprise Invoice Generator - Database Schema
+// Based on technical specification: 05-DATABASE-SCHEMA.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MULTI-TENANT CORE
+// ============================================================================
+
+model Tenant {
+  id                String    @id @default(cuid())
+  name              String
+  subdomain         String    @unique
+  customDomain      String?   @unique @map("custom_domain")
+  plan              String    @default("starter") // starter, professional, enterprise
+  status            String    @default("active") // active, trial, suspended, cancelled
+  maxUsers          Int?      @map("max_users")
+  maxInvoices       Int?      @map("max_invoices")
+  features          Json      @default("{}")
+  settings          Json      @default("{}")
+  trialEndsAt       DateTime? @map("trial_ends_at")
+  subscriptionId    String?   @map("subscription_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  users             User[]
+  companies         Company[]
+  customers         Customer[]
+  invoices          Invoice[]
+  products          Product[]
+  taxProfiles       TaxProfile[] @relation("TenantTaxProfiles")
+  auditLogs         AuditLog[]
+  integrations      Integration[]
+
+  @@index([subdomain])
+  @@index([status])
+  @@map("tenants")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  tenantId         String    @map("tenant_id")
+  email            String
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  passwordHash     String?   @map("password_hash")
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
+  phone            String?
+  avatarUrl        String?   @map("avatar_url")
+  role             String    @default("team_member") // owner, admin, accountant, manager, team_member, viewer
+  permissions      Json      @default("{}")
+  status           String    @default("active") // active, inactive, suspended
+  language         String    @default("en")
+  timezone         String    @default("UTC")
+  lastLoginAt      DateTime? @map("last_login_at")
+  lastLoginIp      String?   @map("last_login_ip")
+  mfaEnabled       Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret        String?   @map("mfa_secret")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdInvoices  Invoice[] @relation("InvoiceCreator")
+  createdCustomers Customer[] @relation("CustomerCreator")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model Company {
+  id                    String       @id @default(cuid())
+  tenantId              String       @map("tenant_id")
+  legalName             String       @map("legal_name")
+  tradingName           String?      @map("trading_name")
+  taxNumber             String?      @map("tax_number")
+  registrationNumber    String?      @map("registration_number")
+  logoUrl               String?      @map("logo_url")
+  website               String?
+  email                 String?
+  phone                 String?
+  addresses             Json         @default("[]")
+  bankDetails           Json         @default("[]") @map("bank_details")
+  settings              Json         @default("{}")
+  invoiceNumberPrefix   String?      @map("invoice_number_prefix")
+  invoiceNumberNext     Int          @default(1) @map("invoice_number_next")
+  defaultPaymentTerms   Int          @default(30) @map("default_payment_terms")
+  defaultCurrency       String       @default("USD") @map("default_currency")
+  defaultTaxProfileId   String?      @map("default_tax_profile_id")
+  isDefault             Boolean      @default(false) @map("is_default")
+  isActive              Boolean      @default(true) @map("is_active")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  tenant                Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  defaultTaxProfile     TaxProfile?  @relation("CompanyDefaultTax", fields: [defaultTaxProfileId], references: [id], onDelete: SetNull)
+  customers             Customer[]
+  invoices              Invoice[]
+  products              Product[]
+  taxProfiles           TaxProfile[] @relation("CompanyTaxProfiles")
+
+  @@index([tenantId])
+  @@index([tenantId, taxNumber])
+  @@map("companies")
+}
+
+// ============================================================================
+// CUSTOMERS
+// ============================================================================
+
+model Customer {
+  id                  String    @id @default(cuid())
+  tenantId            String    @map("tenant_id")
+  companyId           String    @map("company_id")
+  customerType        String    @default("business") @map("customer_type") // business, individual
+  name                String
+  companyName         String?   @map("company_name")
+  contactPerson       String?   @map("contact_person")
+  email               String?
+  phone               String?
+  mobile              String?
+  taxNumber           String?   @map("tax_number")
+  taxExempt           Boolean   @default(false) @map("tax_exempt")
+  taxExemptionCertUrl String?   @map("tax_exemption_cert_url")
+  billingAddress      Json?     @map("billing_address")
+  shippingAddress     Json?     @map("shipping_address")
+  paymentTerms        Int       @default(30) @map("payment_terms")
+  preferredPaymentMethod String? @map("preferred_payment_method")
+  currency            String    @default("USD")
+  creditLimit         Decimal?  @map("credit_limit") @db.Decimal(15, 2)
+  balance             Decimal   @default(0) @map("balance") @db.Decimal(15, 2)
+  notes               String?
+  tags                String[]
+  customFields        Json      @default("{}") @map("custom_fields")
+  status              String    @default("active") // active, inactive, archived
+  xeroId              String?   @map("xero_id")
+  quickbooksId        String?   @map("quickbooks_id")
+  myobId              String?   @map("myob_id")
+  createdBy           String?   @map("created_by")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator             User?     @relation("CustomerCreator", fields: [createdBy], references: [id])
+  invoices            Invoice[]
+  payments            Payment[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([email])
+  @@index([status])
+  @@map("customers")
+}
+
+// ============================================================================
+// INVOICES
+// ============================================================================
+
+model Invoice {
+  id                  String        @id @default(cuid())
+  tenantId            String        @map("tenant_id")
+  companyId           String        @map("company_id")
+  customerId          String        @map("customer_id")
+  number              String
+  status              String        @default("draft") // draft, sent, viewed, partial, paid, overdue, void, cancelled
+  invoiceType         String        @default("standard") @map("invoice_type") // standard, recurring, deposit, credit_note
+  issueDate           DateTime      @map("issue_date") @db.Date
+  dueDate             DateTime      @map("due_date") @db.Date
+  currency            String        @default("USD")
+  exchangeRate        Decimal       @default(1.0) @map("exchange_rate") @db.Decimal(15, 6)
+  subtotal            Decimal       @default(0) @db.Decimal(15, 2)
+  discountType        String?       @map("discount_type") // percent, fixed
+  discountValue       Decimal?      @map("discount_value") @db.Decimal(15, 2)
+  discountTotal       Decimal       @default(0) @map("discount_total") @db.Decimal(15, 2)
+  taxTotal            Decimal       @default(0) @map("tax_total") @db.Decimal(15, 2)
+  shippingCost        Decimal       @default(0) @map("shipping_cost") @db.Decimal(15, 2)
+  surcharges          Json          @default("[]")
+  total               Decimal       @default(0) @db.Decimal(15, 2)
+  amountPaid          Decimal       @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  amountDue           Decimal       @default(0) @map("amount_due") @db.Decimal(15, 2)
+  notes               String?
+  terms               String?
+  footer              String?
+  reference           String?
+  poNumber            String?       @map("po_number")
+  templateId          String?       @map("template_id")
+  pdfUrl              String?       @map("pdf_url")
+  pdfGeneratedAt      DateTime?     @map("pdf_generated_at")
+  publicToken         String?       @unique @map("public_token")
+  publicLinkExpiresAt DateTime?     @map("public_link_expires_at")
+  sentAt              DateTime?     @map("sent_at")
+  viewedAt            DateTime?     @map("viewed_at")
+  paidAt              DateTime?     @map("paid_at")
+  voidedAt            DateTime?     @map("voided_at")
+  voidReason          String?       @map("void_reason")
+  version             Int           @default(1)
+  parentInvoiceId     String?       @map("parent_invoice_id")
+  customFields        Json          @default("{}") @map("custom_fields")
+  metadata            Json          @default("{}")
+  createdBy           String?       @map("created_by")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company             Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer            Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  creator             User?         @relation("InvoiceCreator", fields: [createdBy], references: [id])
+  lineItems           InvoiceItem[]
+  payments            Payment[]
+  versions            InvoiceVersion[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, issueDate])
+  @@index([customerId, issueDate])
+  @@index([tenantId, status])
+  @@index([dueDate])
+  @@index([publicToken])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id              String   @id @default(cuid())
+  invoiceId       String   @map("invoice_id")
+  productId       String?  @map("product_id")
+  description     String
+  quantity        Decimal  @default(1) @db.Decimal(15, 3)
+  unit            String   @default("unit")
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(15, 2)
+  discountPercent Decimal  @default(0) @map("discount_percent") @db.Decimal(5, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  subtotal        Decimal  @db.Decimal(15, 2)
+  taxProfileId    String?  @map("tax_profile_id")
+  taxPercent      Decimal  @default(0) @map("tax_percent") @db.Decimal(5, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  total           Decimal  @db.Decimal(15, 2)
+  sortOrder       Int      @default(0) @map("sort_order")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  invoice         Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product         Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  taxProfile      TaxProfile? @relation(fields: [taxProfileId], references: [id])
+
+  @@index([invoiceId, sortOrder])
+  @@index([productId])
+  @@map("invoice_items")
+}
+
+model InvoiceVersion {
+  id         String   @id @default(cuid())
+  invoiceId  String   @map("invoice_id")
+  version    Int
+  changeType String   @map("change_type") // created, updated, amended, sent, paid, voided
+  reason     String?
+  snapshot   Json
+  diff       Json?
+  createdBy  String?  @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, version])
+  @@index([invoiceId, version])
+  @@map("invoice_versions")
+}
+
+// ============================================================================
+// PAYMENTS
+// ============================================================================
+
+model Payment {
+  id              String    @id @default(cuid())
+  tenantId        String    @map("tenant_id")
+  invoiceId       String?   @map("invoice_id")
+  customerId      String    @map("customer_id")
+  paymentNumber   String    @map("payment_number")
+  amount          Decimal   @db.Decimal(15, 2)
+  currency        String    @default("USD")
+  exchangeRate    Decimal   @default(1.0) @map("exchange_rate") @db.Decimal(15, 6)
+  paymentMethod   String    @map("payment_method") // card, bank_transfer, cash, check, paypal, stripe
+  paymentDate     DateTime  @map("payment_date") @db.Date
+  reference       String?
+  transactionId   String?   @map("transaction_id")
+  gateway         String?
+  gatewayResponse Json?     @map("gateway_response")
+  status          String    @default("pending") // pending, processing, succeeded, failed, refunded
+  failureReason   String?   @map("failure_reason")
+  notes           String?
+  reconciled      Boolean   @default(false)
+  reconciledAt    DateTime? @map("reconciled_at")
+  reconciledBy    String?   @map("reconciled_by")
+  createdBy       String?   @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, paymentNumber])
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([paymentDate])
+  @@index([status])
+  @@map("payments")
+}
+
+// ============================================================================
+// PRODUCTS & TAX
+// ============================================================================
+
+model Product {
+  id                String        @id @default(cuid())
+  tenantId          String        @map("tenant_id")
+  companyId         String?       @map("company_id")
+  name              String
+  description       String?
+  sku               String?
+  unitPrice         Decimal       @map("unit_price") @db.Decimal(15, 2)
+  costPrice         Decimal?      @map("cost_price") @db.Decimal(15, 2)
+  unit              String        @default("unit")
+  taxProfileId      String?       @map("tax_profile_id")
+  accountCode       String?       @map("account_code")
+  category          String?
+  tags              String[]
+  imageUrl          String?       @map("image_url")
+  isActive          Boolean       @default(true) @map("is_active")
+  trackInventory    Boolean       @default(false) @map("track_inventory")
+  inventoryQuantity Decimal?      @map("inventory_quantity") @db.Decimal(15, 3)
+  customFields      Json          @default("{}") @map("custom_fields")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company           Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  taxProfile        TaxProfile?   @relation(fields: [taxProfileId], references: [id])
+  invoiceItems      InvoiceItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("products")
+}
+
+model TaxProfile {
+  id                String        @id @default(cuid())
+  tenantId          String        @map("tenant_id")
+  companyId         String?       @map("company_id")
+  name              String
+  description       String?
+  type              String        // VAT, GST, sales_tax, PST, HST, withholding
+  rate              Decimal       @db.Decimal(5, 2)
+  compound          Boolean       @default(false)
+  inclusive         Boolean       @default(false)
+  appliesTo         String        @default("all") @map("applies_to") // all, products, services
+  jurisdiction      String?
+  taxAuthority      String?       @map("tax_authority")
+  registrationNumber String?      @map("registration_number")
+  startDate         DateTime?     @map("start_date") @db.Date
+  endDate           DateTime?     @map("end_date") @db.Date
+  isDefault         Boolean       @default(false) @map("is_default")
+  isActive          Boolean       @default(true) @map("is_active")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  tenant            Tenant        @relation("TenantTaxProfiles", fields: [tenantId], references: [id], onDelete: Cascade)
+  company           Company?      @relation("CompanyTaxProfiles", fields: [companyId], references: [id], onDelete: Cascade)
+  products          Product[]
+  invoiceItems      InvoiceItem[]
+  defaultForCompanies Company[]   @relation("CompanyDefaultTax")
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("tax_profiles")
+}
+
+// ============================================================================
+// AUDIT & INTEGRATIONS
+// ============================================================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  eventType     String   @map("event_type")
+  actorType     String   @map("actor_type") // user, api_key, system
+  actorId       String?  @map("actor_id")
+  actorName     String?  @map("actor_name")
+  resourceType  String?  @map("resource_type")
+  resourceId    String?  @map("resource_id")
+  action        String
+  status        String   @default("success")
+  metadata      Json     @default("{}")
+  changes       Json?
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  requestId     String?  @map("request_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([actorId])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+model Integration {
+  id             String    @id @default(cuid())
+  tenantId       String    @map("tenant_id")
+  companyId      String?   @map("company_id")
+  provider       String    // xero, quickbooks, myob, stripe, paypal
+  status         String    @default("active") // active, inactive, error, disconnected
+  credentials    String?   // Encrypted
+  settings       Json      @default("{}")
+  lastSyncAt     DateTime? @map("last_sync_at")
+  syncStatus     String?   @map("sync_status")
+  errorMessage   String?   @map("error_message")
+  errorCount     Int       @default(0) @map("error_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+  @@map("integrations")
+}
