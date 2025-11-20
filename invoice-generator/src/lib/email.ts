@@ -1,8 +1,23 @@
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 // Initialize Resend with API key from environment
 // Use placeholder for build time when env var is not available
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_for_build');
+
+// Check if SMTP credentials are configured
+const useSmtp = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+
+// Create SMTP transporter if configured
+const smtpTransporter = useSmtp ? nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+}) : null;
 
 export interface SendInvoiceEmailParams {
   to: string;
@@ -24,37 +39,66 @@ export async function sendInvoiceEmail({
   pdfBuffer,
 }: SendInvoiceEmailParams) {
   try {
-    const attachments = pdfBuffer
-      ? [
-          {
-            filename: `Invoice-${invoiceNumber}.pdf`,
-            content: pdfBuffer,
-          },
-        ]
-      : [];
-
-    // Use custom sender email from env var, or fall back to default
-    const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
-
-    const { data, error } = await resend.emails.send({
-      from: `${companyName} <${senderEmail}>`,
-      to: [to],
-      subject: `Invoice ${invoiceNumber} from ${companyName}`,
-      html: generateInvoiceEmailHTML({
-        customerName,
-        invoiceNumber,
-        amount,
-        dueDate,
-        companyName,
-      }),
-      attachments,
+    const subject = `Invoice ${invoiceNumber} from ${companyName}`;
+    const htmlContent = generateInvoiceEmailHTML({
+      customerName,
+      invoiceNumber,
+      amount,
+      dueDate,
+      companyName,
     });
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    // Use SMTP if configured, otherwise use Resend
+    if (useSmtp && smtpTransporter) {
+      console.log('Sending email via SMTP...');
 
-    return { success: true, data };
+      const senderEmail = process.env.SMTP_USER!;
+      const attachments = pdfBuffer
+        ? [
+            {
+              filename: `Invoice-${invoiceNumber}.pdf`,
+              content: pdfBuffer,
+            },
+          ]
+        : [];
+
+      const info = await smtpTransporter.sendMail({
+        from: `${companyName} <${senderEmail}>`,
+        to: to,
+        subject: subject,
+        html: htmlContent,
+        attachments: attachments,
+      });
+
+      console.log('SMTP email sent:', info.messageId);
+      return { success: true, data: info };
+    } else {
+      console.log('Sending email via Resend...');
+
+      const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
+      const attachments = pdfBuffer
+        ? [
+            {
+              filename: `Invoice-${invoiceNumber}.pdf`,
+              content: pdfBuffer,
+            },
+          ]
+        : [];
+
+      const { data, error } = await resend.emails.send({
+        from: `${companyName} <${senderEmail}>`,
+        to: [to],
+        subject: subject,
+        html: htmlContent,
+        attachments,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    }
   } catch (error) {
     console.error('Email sending error:', error);
     throw error;
@@ -226,29 +270,49 @@ export async function sendPaymentReminderEmail({
       ? `Reminder: Invoice ${invoiceNumber} is ${daysOverdue} days overdue`
       : `Payment Reminder: Invoice ${invoiceNumber}`;
 
-    // Use custom sender email from env var, or fall back to default
-    const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
-
-    const { data, error } = await resend.emails.send({
-      from: `${companyName} <${senderEmail}>`,
-      to: [to],
-      subject,
-      html: generateReminderEmailHTML({
-        customerName,
-        invoiceNumber,
-        amount,
-        dueDate,
-        companyName,
-        isOverdue,
-        daysOverdue,
-      }),
+    const htmlContent = generateReminderEmailHTML({
+      customerName,
+      invoiceNumber,
+      amount,
+      dueDate,
+      companyName,
+      isOverdue,
+      daysOverdue,
     });
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    // Use SMTP if configured, otherwise use Resend
+    if (useSmtp && smtpTransporter) {
+      console.log('Sending reminder via SMTP...');
 
-    return { success: true, data };
+      const senderEmail = process.env.SMTP_USER!;
+
+      const info = await smtpTransporter.sendMail({
+        from: `${companyName} <${senderEmail}>`,
+        to: to,
+        subject: subject,
+        html: htmlContent,
+      });
+
+      console.log('SMTP reminder sent:', info.messageId);
+      return { success: true, data: info };
+    } else {
+      console.log('Sending reminder via Resend...');
+
+      const senderEmail = process.env.RESEND_SENDER_EMAIL || `invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}`;
+
+      const { data, error } = await resend.emails.send({
+        from: `${companyName} <${senderEmail}>`,
+        to: [to],
+        subject,
+        html: htmlContent,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    }
   } catch (error) {
     console.error('Reminder email sending error:', error);
     throw error;
